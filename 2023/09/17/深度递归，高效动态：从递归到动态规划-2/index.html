@@ -13,7 +13,7 @@
 
 
 
-<title>深度递归，高效动态：从递归到动态规划(1) | own</title>
+<title>深度递归，高效动态：从递归到动态规划(2) | own</title>
 
 
 
@@ -196,7 +196,7 @@
     
     <article class="post-wrap">
         <header class="post-header">
-            <h1 class="post-title">深度递归，高效动态：从递归到动态规划(1)</h1>
+            <h1 class="post-title">深度递归，高效动态：从递归到动态规划(2)</h1>
             
                 <div class="post-meta">
                     
@@ -205,7 +205,7 @@
 
                     
                         <span class="post-time">
-                        Date: <a href="#">September 16, 2023&nbsp;&nbsp;11:56:43</a>
+                        Date: <a href="#">September 17, 2023&nbsp;&nbsp;10:51:48</a>
                         </span>
                     
                     
@@ -221,30 +221,39 @@
         </header>
 
         <div class="post-content">
-            <h1 id="深度递归，高效动态：从递归到动态规划-1"><a href="#深度递归，高效动态：从递归到动态规划-1" class="headerlink" title="深度递归，高效动态：从递归到动态规划(1)"></a>深度递归，高效动态：从递归到动态规划(1)</h1><h1 id="1-动态规划的理论基础"><a href="#1-动态规划的理论基础" class="headerlink" title="1.动态规划的理论基础"></a>1.动态规划的理论基础</h1><p><strong>常见类型</strong>：斐波那契额数列，背包问题，打家劫舍，股票问题，子数列问题</p>
-<p>以下为解决动态规划类问题的五步：</p>
+            <h1 id="深度递归，高效动态：从递归到动态规划-2"><a href="#深度递归，高效动态：从递归到动态规划-2" class="headerlink" title="深度递归，高效动态：从递归到动态规划(2)"></a>深度递归，高效动态：从递归到动态规划(2)</h1><h1 id="1-经典的Leetcode动态规划题目"><a href="#1-经典的Leetcode动态规划题目" class="headerlink" title="1.经典的Leetcode动态规划题目"></a>1.经典的Leetcode动态规划题目</h1><p>Leetcode中的第70题爬楼梯本质上就是一个经典的动态规划题目</p>
+<p><code>假设你正在爬楼梯。需要 </code>n&#96; 阶你才能到达楼顶。</p>
+<p>每次你可以爬 <code>1</code> 或 <code>2</code> 个台阶。你有多少种不同的方法可以爬到楼顶呢？</p>
+<p>实现这个题目也是要执行五步</p>
 <ul>
-<li><strong>dp数组的含义</strong></li>
-<li><strong>递推公式</strong></li>
-<li><strong>dp数组的初始化</strong></li>
+<li><strong>dp数组的含义</strong>：</li>
+</ul>
+<p>i为第几阶楼梯，dp[i]即为对应的i可以有多少种走法</p>
+<ul>
+<li><strong>递推公式</strong>：</li>
+</ul>
+<p>第一台阶：1种</p>
+<p>第二台阶：2种</p>
+<p>第三台阶：3中</p>
+<p>第四台阶：5种</p>
+<p>……………………………………</p>
+<p>综上所述，递推公式即为dp[i] &#x3D; dp[i-1] + dp[i-2]</p>
+<ul>
+<li><strong>dp数组的初始化</strong>:</li>
+</ul>
+<p>dp[0] &#x3D; 1 dp[1] &#x3D; 2</p>
+<ul>
 <li><strong>遍历顺序</strong></li>
+</ul>
+<p>依旧从前往后遍历</p>
+<ul>
 <li><strong>打印dp数组</strong></li>
 </ul>
-<h2 id="2-具体题目演示"><a href="#2-具体题目演示" class="headerlink" title="2.具体题目演示"></a>2.具体题目演示</h2><p><code>Leetcode 509:斐波那契数列:以下为不用动态规划思想</code></p>
-<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">Solution</span> &#123;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    <span class="function"><span class="type">int</span> <span class="title">fib</span><span class="params">(<span class="type">int</span> n)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (n == <span class="number">0</span>) <span class="keyword">return</span> <span class="number">0</span>; <span class="comment">//分步计算，若n=0</span></span><br><span class="line">        <span class="keyword">if</span> (n == <span class="number">1</span>) <span class="keyword">return</span> <span class="number">1</span>; <span class="comment">//若n=1</span></span><br><span class="line">        <span class="type">int</span> nums[<span class="number">2</span>] = &#123;<span class="number">0</span>, <span class="number">1</span>&#125;;<span class="comment">//设置一个初始值，包含第一个和第0个</span></span><br><span class="line">        <span class="keyword">for</span>(<span class="type">int</span> i = <span class="number">2</span>; i &lt;= n; ++i) &#123;<span class="comment">//从第二个数开始计算</span></span><br><span class="line">            <span class="type">int</span> temp = nums[<span class="number">1</span>];<span class="comment">//迭代循环，数组第二个存储最终值，第一个存储前一次循环的第二个值</span></span><br><span class="line">            nums[<span class="number">1</span>] = nums[<span class="number">0</span>] + temp;</span><br><span class="line">            nums[<span class="number">0</span>] = temp;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> nums[<span class="number">1</span>];<span class="comment">//返回数组第二个</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>执行到第n阶时打印</p>
+<h2 id="具体代码演示："><a href="#具体代码演示：" class="headerlink" title="具体代码演示："></a>具体代码演示：</h2><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">Solution</span> &#123;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    <span class="function"><span class="type">int</span> <span class="title">climbStairs</span><span class="params">(<span class="type">int</span> n)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">if</span>(n == <span class="number">1</span>)</span><br><span class="line">        <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">        <span class="keyword">if</span>(n == <span class="number">2</span>)</span><br><span class="line">        <span class="keyword">return</span> <span class="number">2</span>;</span><br><span class="line">        <span class="function">vector&lt;<span class="type">int</span>&gt; <span class="title">nums</span><span class="params">(n)</span></span>;</span><br><span class="line">        nums[<span class="number">0</span>] = <span class="number">1</span>;</span><br><span class="line">        nums[<span class="number">1</span>] = <span class="number">2</span>;</span><br><span class="line">        <span class="keyword">for</span>(<span class="type">int</span> x = <span class="number">2</span>;x &lt; n;x++)</span><br><span class="line">        &#123;</span><br><span class="line">            nums[x] = nums[x<span class="number">-1</span>] + nums[x<span class="number">-2</span>];</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> nums[n<span class="number">-1</span>];</span><br><span class="line">    &#125;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
 
-<p><code>以下使用动态规划求解Leetcode509</code></p>
-<p> <strong>解题思路</strong>：</p>
-<ul>
-<li>确定dp[i]含义：这里指斐波那契数列中第i个</li>
-<li>递推公式：题目中已经给出，dp[i] &#x3D; dp[i-1] + dp[i-2]</li>
-<li>初始化：题目已经给出，dp[0] &#x3D; 0,dp[1] &#x3D; 1</li>
-<li>遍历：</li>
-<li>打印dp：dp[n]</li>
-</ul>
-<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">Solution</span> &#123;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    <span class="function"><span class="type">int</span> <span class="title">fib</span><span class="params">(<span class="type">int</span> n)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (n == <span class="number">0</span>) <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">        <span class="keyword">if</span> (n == <span class="number">1</span>) <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">        <span class="function">vector&lt;<span class="type">int</span>&gt; <span class="title">dp</span><span class="params">(n+<span class="number">1</span>)</span></span>;</span><br><span class="line">        dp[<span class="number">0</span>] = <span class="number">0</span>;</span><br><span class="line">        dp[<span class="number">1</span>] = <span class="number">1</span>;</span><br><span class="line">        <span class="keyword">for</span>(<span class="type">int</span> q = <span class="number">2</span>;q &lt;= n;q++)</span><br><span class="line">        &#123;</span><br><span class="line">            dp[q] = dp[q<span class="number">-1</span>] + dp[q<span class="number">-2</span>];</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> dp[n];</span><br><span class="line">    &#125;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
-
-
+<p>以上的时间复杂度和空间复杂度均为O(n),这段代码将所有的数组均存储，实际上递归之后只需要两个pre，以下为空间复杂度为O(1)的解法</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">Solution</span>&#123;</span><br><span class="line">   <span class="keyword">public</span>:</span><br><span class="line">    <span class="function"><span class="type">int</span> <span class="title">climbStairs</span><span class="params">(<span class="type">int</span> n)</span></span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">         <span class="keyword">if</span> (n == <span class="number">1</span>) <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">        <span class="keyword">if</span> (n == <span class="number">2</span>) <span class="keyword">return</span> <span class="number">2</span>;</span><br><span class="line"></span><br><span class="line">        <span class="type">int</span> first = <span class="number">1</span>, second = <span class="number">2</span>, current;</span><br><span class="line">        <span class="keyword">for</span> (<span class="type">int</span> x = <span class="number">3</span>; x &lt;= n; x++) &#123;</span><br><span class="line">            current = first + second;</span><br><span class="line">            first = second;</span><br><span class="line">            second = current;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> second;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
 
         </div>
@@ -292,8 +301,8 @@
         </section>
         <section class="post-nav">
             
-                <a class="prev" rel="prev" href="/2023/09/17/%E6%B7%B1%E5%BA%A6%E9%80%92%E5%BD%92%EF%BC%8C%E9%AB%98%E6%95%88%E5%8A%A8%E6%80%81%EF%BC%9A%E4%BB%8E%E9%80%92%E5%BD%92%E5%88%B0%E5%8A%A8%E6%80%81%E8%A7%84%E5%88%92-2/">深度递归，高效动态：从递归到动态规划(2)</a>
             
+            <a class="next" rel="next" href="/2023/09/16/%E6%B7%B1%E5%BA%A6%E9%80%92%E5%BD%92%EF%BC%8C%E9%AB%98%E6%95%88%E5%8A%A8%E6%80%81%EF%BC%9A%E4%BB%8E%E9%80%92%E5%BD%92%E5%88%B0%E5%8A%A8%E6%80%81%E8%A7%84%E5%88%92-1/">深度递归，高效动态：从递归到动态规划(1)</a>
             
         </section>
 
