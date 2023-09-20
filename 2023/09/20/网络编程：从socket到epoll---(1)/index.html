@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <meta name="author" content="yuhanliu">
+
+
+
+
+
+<title>网络编程：从socket到epoll---(1) | own</title>
+
+
+
+    <link rel="icon" href="/favicon.ico">
+
+
+
+
+    <!-- stylesheets list from _config.yml -->
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+
+
+
+    <!-- scripts list from _config.yml -->
+    
+    <script src="/js/script.js"></script>
+    
+    <script src="/js/tocbot.min.js"></script>
+    
+
+
+
+    
+    
+        
+    
+
+
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+<body>
+    <script>
+        // this function is used to check current theme before page loaded.
+        (() => {
+            const currentTheme = window.localStorage && window.localStorage.getItem('theme') || '';
+            const isDark = currentTheme === 'dark';
+            const pagebody = document.getElementsByTagName('body')[0]
+            if (isDark) {
+                pagebody.classList.add('dark-theme');
+                // mobile
+                document.getElementById("mobile-toggle-theme").innerText = "· Dark"
+            } else {
+                pagebody.classList.remove('dark-theme');
+                // mobile
+                document.getElementById("mobile-toggle-theme").innerText = "· Light"
+            }
+        })();
+    </script>
+
+    <div class="wrapper">
+        <header>
+    <nav class="navbar">
+        <div class="container">
+            <div class="navbar-header header-logo"><a href="/">yuhanLiu&#39;s Blog</a></div>
+            <div class="menu navbar-right">
+                
+                    <a class="menu-item" href="/archives">Posts</a>
+                
+                    <a class="menu-item" href="/category">Categories</a>
+                
+                    <a class="menu-item" href="/tag">Tags</a>
+                
+                    <a class="menu-item" href="/about">About</a>
+                
+                <input id="switch_default" type="checkbox" class="switch_default">
+                <label for="switch_default" class="toggleBtn"></label>
+            </div>
+        </div>
+    </nav>
+
+    
+    <nav class="navbar-mobile" id="nav-mobile">
+        <div class="container">
+            <div class="navbar-header">
+                <div>
+                    <a href="/">yuhanLiu&#39;s Blog</a><a id="mobile-toggle-theme">·&nbsp;Light</a>
+                </div>
+                <div class="menu-toggle" onclick="mobileBtn()">&#9776; Menu</div>
+            </div>
+            <div class="menu" id="mobile-menu">
+                
+                    <a class="menu-item" href="/archives">Posts</a>
+                
+                    <a class="menu-item" href="/category">Categories</a>
+                
+                    <a class="menu-item" href="/tag">Tags</a>
+                
+                    <a class="menu-item" href="/about">About</a>
+                
+            </div>
+        </div>
+    </nav>
+
+</header>
+<script>
+    var mobileBtn = function f() {
+        var toggleMenu = document.getElementsByClassName("menu-toggle")[0];
+        var mobileMenu = document.getElementById("mobile-menu");
+        if(toggleMenu.classList.contains("active")){
+           toggleMenu.classList.remove("active")
+            mobileMenu.classList.remove("active")
+        }else{
+            toggleMenu.classList.add("active")
+            mobileMenu.classList.add("active")
+        }
+    }
+</script>
+            <div class="main">
+                <div class="container">
+    
+    
+        <div class="post-toc">
+    <div class="tocbot-list">
+    </div>
+    <div class="tocbot-list-menu">
+        <a class="tocbot-toc-expand" onclick="expand_toc()">Expand all</a>
+        <a onclick="go_top()">Back to top</a>
+        <a onclick="go_bottom()">Go to bottom</a>
+    </div>
+</div>
+
+<script>
+    var tocbot_timer;
+    var DEPTH_MAX = 6; // 为 6 时展开所有
+    var tocbot_default_config = {
+        tocSelector: '.tocbot-list',
+        contentSelector: '.post-content',
+        headingSelector: 'h1, h2, h3, h4, h5',
+        orderedList: false,
+        scrollSmooth: true,
+        onClick: extend_click,
+    };
+
+    function extend_click() {
+        clearTimeout(tocbot_timer);
+        tocbot_timer = setTimeout(function() {
+            tocbot.refresh(obj_merge(tocbot_default_config, {
+                hasInnerContainers: true
+            }));
+        }, 420); // 这个值是由 tocbot 源码里定义的 scrollSmoothDuration 得来的
+    }
+
+    document.ready(function() {
+        tocbot.init(obj_merge(tocbot_default_config, {
+            collapseDepth: 1
+        }));
+    });
+
+    function expand_toc() {
+        var b = document.querySelector('.tocbot-toc-expand');
+        var expanded = b.getAttribute('data-expanded');
+        expanded ? b.removeAttribute('data-expanded') : b.setAttribute('data-expanded', true);
+        tocbot.refresh(obj_merge(tocbot_default_config, {
+            collapseDepth: expanded ? 1 : DEPTH_MAX
+        }));
+        b.innerText = expanded ? 'Expand all' : 'Collapse all';
+    }
+
+    function go_top() {
+        window.scrollTo(0, 0);
+    }
+
+    function go_bottom() {
+        window.scrollTo(0, document.body.scrollHeight);
+    }
+
+    function obj_merge(target, source) {
+        for (var item in source) {
+            if (source.hasOwnProperty(item)) {
+                target[item] = source[item];
+            }
+        }
+        return target;
+    }
+</script>
+    
+
+    
+    <article class="post-wrap">
+        <header class="post-header">
+            <h1 class="post-title">网络编程：从socket到epoll---(1)</h1>
+            
+                <div class="post-meta">
+                    
+                        Author: <a itemprop="author" rel="author" href="/">yuhanliu</a>
+                    
+
+                    
+                        <span class="post-time">
+                        Date: <a href="#">September 20, 2023&nbsp;&nbsp;18:56:16</a>
+                        </span>
+                    
+                    
+                        <span class="post-category">
+                    Category:
+                            
+                                <a href="/categories/c-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B/">c++网络编程</a>
+                            
+                        </span>
+                    
+                </div>
+            
+        </header>
+
+        <div class="post-content">
+            <h1 id="网络编程：从socket到epoll—-1"><a href="#网络编程：从socket到epoll—-1" class="headerlink" title="网络编程：从socket到epoll—(1)"></a>网络编程：从socket到epoll—(1)</h1><h2 id="第一个网络通信程序"><a href="#第一个网络通信程序" class="headerlink" title="第一个网络通信程序"></a>第一个网络通信程序</h2><ul>
+<li>客户端必须知道服务端的IP地址和端口</li>
+<li>服务端不需要知道客户端的IP地址和端口</li>
+</ul>
+<p><strong>客户端</strong>：</p>
+<ol>
+<li>创建客户端的socket</li>
+<li>向服务端发起连接请求</li>
+<li>与服务端通信，发送一个请求报文后等待回复，再发送下一个请求报文</li>
+<li>关闭socket</li>
+</ol>
+<p><strong>服务端：</strong></p>
+<ol>
+<li>创建服务端socket</li>
+<li>把服务端用于通信的IP和端口绑定到socket上</li>
+<li>把socket设置为可连接（监听状态）</li>
+<li>受理客户端的连接请求，如果没有客户端连上来，accept（）函数将阻塞等待</li>
+<li>与客户端通信，接受客户端发过来的报文后，回复ok</li>
+<li>关闭监听后关闭clientfd</li>
+</ol>
+<h2 id="基于Linux的文件操作"><a href="#基于Linux的文件操作" class="headerlink" title="基于Linux的文件操作"></a>基于Linux的文件操作</h2><blockquote>
+<p>在网络传输过程中，可以使用文件的i&#x2F;o函数</p>
+</blockquote>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//demo3</span></span><br><span class="line"><span class="comment">//演示Linux底层文件的操作-创建文件并写入数据</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdio.h&gt;</span></span></span><br><span class="line">·····</span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;unistd.h&gt;</span></span></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    itn fd;<span class="comment">//文件描述符，代码中指文件</span></span><br><span class="line">    fd = <span class="built_in">open</span>(<span class="string">&quot;data.txt&quot;</span>,<span class="number">0</span>_CREAR|<span class="number">0</span>_RDWR|<span class="number">0</span>_TRUNC)</span><br><span class="line">    <span class="keyword">if</span>(fd == <span class="number">-1</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="built_in">perror</span>(<span class="string">&quot;open(data.txt)&quot;</span>);</span><br><span class="line">        <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;文件描述符fd=%d\n&quot;</span>,fd);</span><br><span class="line">    <span class="type">char</span> buffer[<span class="number">1024</span>];</span><br><span class="line">    <span class="built_in">strcpy</span>(buffer,<span class="string">&quot;123456879.&quot;</span>)；</span><br><span class="line">    <span class="keyword">if</span>(<span class="built_in">write</span>(fd,buffer,<span class="built_in">strlen</span>(buffer)) == <span class="number">-1</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="built_in">perror</span>(<span class="string">&quot;write()&quot;</span>);</span><br><span class="line">        <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">close</span>(fd);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>Linux底层文件的操作-读取文件</strong>大同小异</p>
+<p><code>/proc/进程id/fd中，存放了每个进程打开的fd</code></p>
+<ul>
+<li>Linux进程默认打开三个文件描述符，0-标准输入，1-标准输出，2-标准错误，cin，cout，cerr</li>
+</ul>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#inlcude <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="keyword">using</span> namesapce std;</span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="type">int</span> ii = <span class="number">0</span>;</span><br><span class="line">    cin&gt;&gt;ii;</span><br><span class="line">    cout &lt;&lt; <span class="string">&quot;ii=&quot;</span> &lt;&lt; ii &lt;&lt;endl;</span><br><span class="line">    cerr &lt;&lt; <span class="string">&quot;ii=&quot;</span> &lt;&lt; ii &lt;&lt;endl;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">//例如，在这段cpp代码中，可以正常运行cin，cout，cerr</span></span><br><span class="line"><span class="comment">//若使用close(0/1/2),则会造成某一个文件符缺省</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>若将012均close，则在读取文件代码中，最后输出fd的文件操作符的值为0，原为3，现在关掉前3个，则输出0</p>
+</blockquote>
+<p>若在第一段代码中增加socket函数，则该文件操作符为4.</p>
+<h2 id="socket函数详解"><a href="#socket函数详解" class="headerlink" title="socket函数详解"></a>socket函数详解</h2><blockquote>
+<p>int socket(int domain,int type,int protocol)；</p>
+</blockquote>
+<ol>
+<li>domain通讯的协议</li>
+</ol>
+<p>PE_INET         ipv4</p>
+<p>PE_INET6	ipv6</p>
+<ol>
+<li>type 数据传输的类型</li>
+</ol>
+<p>SOCK_STREAM        面向有连接的socket</p>
+<p>SOCK_DGRAM	    无连接的socket</p>
+<ol>
+<li>protocol最终使用的协议</li>
+</ol>
+<p>ipv4的网络协议中，使用传输方式为——SOCK_STREAM的协议只有IPPROTO_TCP,数据传输方式为SOCK_DGRAM的协议只有IPPROTO_UDP，本参数也可以填0</p>
+<p>第三与第二一一对应</p>
+<h3 id="TCP和UDP的区别"><a href="#TCP和UDP的区别" class="headerlink" title="TCP和UDP的区别"></a>TCP和UDP的区别</h3><blockquote>
+<p>TCP是可靠的传输协议，速度较慢；UDP是不可靠的传输协议，速度较快</p>
+</blockquote>
+
+        </div>
+
+        
+            <section class="post-copyright">
+                
+                    <p class="copyright-item">
+                        <span>Author:</span>
+                        <span>yuhanliu</span>
+                    </p>
+                
+                
+                
+                    <p class="copyright-item">
+                        <span>License:</span>
+                        <span>Copyright (c) 2019 <a target="_blank" rel="noopener" href="http://creativecommons.org/licenses/by-nc/4.0/">CC-BY-NC-4.0</a> LICENSE</span>
+                    </p>
+                
+                
+                     <p class="copyright-item">
+                         <span>Slogan:</span>
+                         <span>Do you believe in <strong>DESTINY</strong>?</span>
+                     </p>
+                
+
+            </section>
+        
+        <section class="post-tags">
+            <div>
+                <span>Tag(s):</span>
+                <span class="tag">
+                    
+                    
+                        <a href="/tags/c-%EF%BC%8C%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B/"># c++，网络编程</a>
+                    
+                        
+                </span>
+            </div>
+            <div>
+                <a href="javascript:window.history.back();">back</a>
+                <span>· </span>
+                <a href="/">home</a>
+            </div>
+        </section>
+        <section class="post-nav">
+            
+            
+            <a class="next" rel="next" href="/2023/09/17/%E6%B7%B1%E5%BA%A6%E9%80%92%E5%BD%92%EF%BC%8C%E9%AB%98%E6%95%88%E5%8A%A8%E6%80%81%EF%BC%9A%E4%BB%8E%E9%80%92%E5%BD%92%E5%88%B0%E5%8A%A8%E6%80%81%E8%A7%84%E5%88%92-2/">深度递归，高效动态：从递归到动态规划(2)</a>
+            
+        </section>
+
+
+    </article>
+</div>
+
+            </div>
+            <footer id="footer" class="footer">
+    <div class="copyright">
+        <span>© yuhanliu | Powered by <a href="https://hexo.io" target="_blank">Hexo</a> & <a href="https://github.com/Siricee/hexo-theme-Chic" target="_blank">Chic</a></span>
+    </div>
+</footer>
+
+    </div>
+</body>
+
+</html>
