@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <meta name="author" content="yuhanliu">
+
+
+
+
+
+<title>网络编程：从socket到epoll---(2) | own</title>
+
+
+
+    <link rel="icon" href="/favicon.ico">
+
+
+
+
+    <!-- stylesheets list from _config.yml -->
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+
+
+
+    <!-- scripts list from _config.yml -->
+    
+    <script src="/js/script.js"></script>
+    
+    <script src="/js/tocbot.min.js"></script>
+    
+
+
+
+    
+    
+        
+    
+
+
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+<body>
+    <script>
+        // this function is used to check current theme before page loaded.
+        (() => {
+            const currentTheme = window.localStorage && window.localStorage.getItem('theme') || '';
+            const isDark = currentTheme === 'dark';
+            const pagebody = document.getElementsByTagName('body')[0]
+            if (isDark) {
+                pagebody.classList.add('dark-theme');
+                // mobile
+                document.getElementById("mobile-toggle-theme").innerText = "· Dark"
+            } else {
+                pagebody.classList.remove('dark-theme');
+                // mobile
+                document.getElementById("mobile-toggle-theme").innerText = "· Light"
+            }
+        })();
+    </script>
+
+    <div class="wrapper">
+        <header>
+    <nav class="navbar">
+        <div class="container">
+            <div class="navbar-header header-logo"><a href="/">yuhanLiu&#39;s Blog</a></div>
+            <div class="menu navbar-right">
+                
+                    <a class="menu-item" href="/archives">Posts</a>
+                
+                    <a class="menu-item" href="/category">Categories</a>
+                
+                    <a class="menu-item" href="/tag">Tags</a>
+                
+                    <a class="menu-item" href="/about">About</a>
+                
+                <input id="switch_default" type="checkbox" class="switch_default">
+                <label for="switch_default" class="toggleBtn"></label>
+            </div>
+        </div>
+    </nav>
+
+    
+    <nav class="navbar-mobile" id="nav-mobile">
+        <div class="container">
+            <div class="navbar-header">
+                <div>
+                    <a href="/">yuhanLiu&#39;s Blog</a><a id="mobile-toggle-theme">·&nbsp;Light</a>
+                </div>
+                <div class="menu-toggle" onclick="mobileBtn()">&#9776; Menu</div>
+            </div>
+            <div class="menu" id="mobile-menu">
+                
+                    <a class="menu-item" href="/archives">Posts</a>
+                
+                    <a class="menu-item" href="/category">Categories</a>
+                
+                    <a class="menu-item" href="/tag">Tags</a>
+                
+                    <a class="menu-item" href="/about">About</a>
+                
+            </div>
+        </div>
+    </nav>
+
+</header>
+<script>
+    var mobileBtn = function f() {
+        var toggleMenu = document.getElementsByClassName("menu-toggle")[0];
+        var mobileMenu = document.getElementById("mobile-menu");
+        if(toggleMenu.classList.contains("active")){
+           toggleMenu.classList.remove("active")
+            mobileMenu.classList.remove("active")
+        }else{
+            toggleMenu.classList.add("active")
+            mobileMenu.classList.add("active")
+        }
+    }
+</script>
+            <div class="main">
+                <div class="container">
+    
+    
+        <div class="post-toc">
+    <div class="tocbot-list">
+    </div>
+    <div class="tocbot-list-menu">
+        <a class="tocbot-toc-expand" onclick="expand_toc()">Expand all</a>
+        <a onclick="go_top()">Back to top</a>
+        <a onclick="go_bottom()">Go to bottom</a>
+    </div>
+</div>
+
+<script>
+    var tocbot_timer;
+    var DEPTH_MAX = 6; // 为 6 时展开所有
+    var tocbot_default_config = {
+        tocSelector: '.tocbot-list',
+        contentSelector: '.post-content',
+        headingSelector: 'h1, h2, h3, h4, h5',
+        orderedList: false,
+        scrollSmooth: true,
+        onClick: extend_click,
+    };
+
+    function extend_click() {
+        clearTimeout(tocbot_timer);
+        tocbot_timer = setTimeout(function() {
+            tocbot.refresh(obj_merge(tocbot_default_config, {
+                hasInnerContainers: true
+            }));
+        }, 420); // 这个值是由 tocbot 源码里定义的 scrollSmoothDuration 得来的
+    }
+
+    document.ready(function() {
+        tocbot.init(obj_merge(tocbot_default_config, {
+            collapseDepth: 1
+        }));
+    });
+
+    function expand_toc() {
+        var b = document.querySelector('.tocbot-toc-expand');
+        var expanded = b.getAttribute('data-expanded');
+        expanded ? b.removeAttribute('data-expanded') : b.setAttribute('data-expanded', true);
+        tocbot.refresh(obj_merge(tocbot_default_config, {
+            collapseDepth: expanded ? 1 : DEPTH_MAX
+        }));
+        b.innerText = expanded ? 'Expand all' : 'Collapse all';
+    }
+
+    function go_top() {
+        window.scrollTo(0, 0);
+    }
+
+    function go_bottom() {
+        window.scrollTo(0, document.body.scrollHeight);
+    }
+
+    function obj_merge(target, source) {
+        for (var item in source) {
+            if (source.hasOwnProperty(item)) {
+                target[item] = source[item];
+            }
+        }
+        return target;
+    }
+</script>
+    
+
+    
+    <article class="post-wrap">
+        <header class="post-header">
+            <h1 class="post-title">网络编程：从socket到epoll---(2)</h1>
+            
+                <div class="post-meta">
+                    
+                        Author: <a itemprop="author" rel="author" href="/">yuhanliu</a>
+                    
+
+                    
+                        <span class="post-time">
+                        Date: <a href="#">September 23, 2023&nbsp;&nbsp;14:26:56</a>
+                        </span>
+                    
+                    
+                        <span class="post-category">
+                    Category:
+                            
+                                <a href="/categories/c-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B/">c++网络编程</a>
+                            
+                        </span>
+                    
+                </div>
+            
+        </header>
+
+        <div class="post-content">
+            <h1 id="网络编程：从socket到epoll—-2"><a href="#网络编程：从socket到epoll—-2" class="headerlink" title="网络编程：从socket到epoll—(2)"></a>网络编程：从socket到epoll—(2)</h1><h2 id="结构体"><a href="#结构体" class="headerlink" title="结构体"></a>结构体</h2><h3 id="1-sockaddr结构体"><a href="#1-sockaddr结构体" class="headerlink" title="1. sockaddr结构体"></a>1. sockaddr结构体</h3><p>存放协议、端口和地址信息，客户端和connect（）函数和服务端的bind（）函数需要这个结构体。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">struct</span> <span class="title class_">sockaddr</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">unsigned</span> <span class="type">short</span> sa_family;  <span class="comment">//协议族，与socker（）函数第一个参数相同，AF_INET/ipv4协议族</span></span><br><span class="line">    <span class="type">unsigned</span> <span class="type">char</span> sa_data[<span class="number">14</span>]; <span class="comment">//14字节的端口和地址</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-sockaddr-in结构体"><a href="#2-sockaddr-in结构体" class="headerlink" title="2.sockaddr_in结构体"></a>2.sockaddr_in结构体</h3><p>sockaddr结构体是为了统一地址结构的表示方法，统一接口函数，但是操作不方便，所以定义了等价的sockaddr _in结构体，大小相同，可以强制转换成sockaddr。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">struct</span> <span class="title class_">sockaddr_in</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">unsigned</span> <span class="type">short</span> sin_family; <span class="comment">//协议族     AF_INET</span></span><br><span class="line">    <span class="type">unsigned</span> <span class="type">short</span> sin_port;   <span class="comment">//16位端口号 --htons()转换</span></span><br><span class="line">    <span class="keyword">struct</span> <span class="title class_">in_addr</span> sin_addr;   <span class="comment">//32位的地址</span></span><br><span class="line">    <span class="type">unsigned</span> <span class="type">char</span> sin_zero[<span class="number">8</span>]; <span class="comment">//未使用，为了保持与struck sockaddr一样的长度而添加</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">in_addr</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">unsigned</span> <span class="type">int</span> s_addr;<span class="comment">//32位的地址--大端序</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-gethostbyname函数"><a href="#3-gethostbyname函数" class="headerlink" title="3.gethostbyname函数"></a>3.gethostbyname函数</h3><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">struct</span> <span class="title class_">hostent</span> *<span class="built_in">gethostbyname</span>(<span class="type">const</span> chat*name);<span class="comment">//参数为域名/主机名/字符串IP</span></span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">hosten</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">char</span> *h_name;</span><br><span class="line">    <span class="type">char</span> **h_aliases;</span><br><span class="line">    <span class="type">short</span> h_addrtype;</span><br><span class="line">    <span class="type">short</span> h_length;</span><br><span class="line">    <span class="type">char</span> **h_addr_list;</span><br><span class="line">&#125;</span><br><span class="line"><span class="meta">#<span class="keyword">define</span> h_addr h_addr_list[0]<span class="comment">// </span></span></span><br></pre></td></tr></table></figure>
+
+<p>使用上述代码将域名&#x2F;主机名&#x2F;字符串IP转换后使用<code>memcpy(&amp;servaddr.sin_addr,h-&gt;h_addr,h-&gt;h_length);</code></p>
+<p>将大端序的地址复制到sin_addr 中</p>
+<h2 id="封装socket客户端"><a href="#封装socket客户端" class="headerlink" title="封装socket客户端"></a>封装socket客户端</h2><blockquote>
+<p>网络编程涉及到的多个数据结构和函数，使用起来不方便</p>
+</blockquote>
+<ul>
+<li>将客户端程序用到的数据结构和函数封装成ctcpclient类</li>
+</ul>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;cstdio&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;cstring&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;cstdlib&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;unistd.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;netdb.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/types.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/socket.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;arpa/inet.h&gt;</span></span></span><br><span class="line"><span class="keyword">using</span> <span class="keyword">namespace</span> std;</span><br><span class="line"><span class="keyword">class</span> <span class="title class_">ctcpclient</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">public</span>:</span><br><span class="line">    <span class="type">int</span> m_clientfd;<span class="comment">// 客户端的socket，-1表示未连接或连接已断开</span></span><br><span class="line">    string m_ip;   <span class="comment">//服务端的IP/域名</span></span><br><span class="line">    <span class="type">unsigned</span> <span class="type">short</span> m_port;</span><br><span class="line">    <span class="built_in">ctcpclient</span>():<span class="built_in">m_clientfd</span>(<span class="number">-1</span>)&#123;&#125;</span><br><span class="line">    <span class="function"><span class="type">bool</span> <span class="title">connect</span><span class="params">(<span class="type">const</span> string &amp;in_ip,<span class="type">const</span> <span class="type">unsigned</span> <span class="type">short</span> in_port)</span></span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        <span class="keyword">if</span>(m_clientfd != <span class="number">-1</span>) <span class="keyword">return</span> <span class="literal">false</span>;<span class="comment">//已连接，返回失败</span></span><br><span class="line">        m_ip = in_ip; m_port = in_port;</span><br><span class="line">        <span class="comment">//第一步，创建客户端的socket</span></span><br><span class="line">        <span class="keyword">if</span> ((m_clientfd = <span class="built_in">socket</span>(AF_INET,SOCK_STREAM,<span class="number">0</span>)) == <span class="number">-1</span>) <span class="keyword">return</span> <span class="literal">false</span>;<span class="comment">//协议，类型，最终协议</span></span><br><span class="line">        <span class="comment">//第二部，连接服务端</span></span><br><span class="line">        <span class="keyword">struct</span> <span class="title class_">sockaddr_in</span> servaddr;</span><br><span class="line">        <span class="built_in">memset</span>(&amp;servaddr,<span class="number">0</span>,<span class="built_in">sizeof</span>(servaddr));<span class="comment">//初始化servaddr，保证没有随机值</span></span><br><span class="line">        servaddr.sin_family = AF_INET;</span><br><span class="line">        servaddr.sin_port = <span class="built_in">htons</span>(m_port);</span><br><span class="line">        <span class="keyword">struct</span> <span class="title class_">hostent</span>* h;<span class="comment">//存储主机的信息，如主机名、别名、地址类型和IP地址列表。</span></span><br><span class="line">        <span class="keyword">if</span>((h = <span class="built_in">gethostbyname</span>(m_ip.<span class="built_in">c_str</span>())) == <span class="literal">nullptr</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="built_in">close</span>(m_clientfd);</span><br><span class="line">            m_clientfd = <span class="number">-1</span>;</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">        &#125;<span class="comment">//尝试解析m_ip中的域名。如果解析失败（例如，因为域名不存在或DNS查询出现问题），则关闭socket并返回false表示失败。</span></span><br><span class="line">        <span class="built_in">memcpy</span>(&amp;servaddr.sin_addr,h-&gt;h_addr,h-&gt;h_length);</span><br><span class="line">        <span class="keyword">if</span>(::<span class="built_in">connect</span>(m_clientfd,(<span class="keyword">struct</span> sockaddr *)&amp;servaddr,<span class="built_in">sizeof</span>(servaddr)) == <span class="number">-1</span>)<span class="comment">//成员函数与库函数重名，：：解决，调用库函数</span></span><br><span class="line">        &#123;</span><br><span class="line">            <span class="built_in">close</span>(m_clientfd);</span><br><span class="line">            m_clientfd = <span class="number">-1</span>;</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//向服务端发送报文的函数</span></span><br><span class="line">    <span class="function"><span class="type">bool</span> <span class="title">send</span><span class="params">(<span class="type">const</span> string &amp;buffer)</span></span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        <span class="keyword">if</span>(m_clientfd == <span class="number">-1</span>) <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">        <span class="keyword">if</span>((::<span class="built_in">send</span>(m_clientfd,buffer.<span class="built_in">data</span>(),buffe.<span class="built_in">size</span>(),<span class="number">0</span>)) &lt;=<span class="number">0</span> )</span><br><span class="line">    	&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">    	&#125;</span><br><span class="line">&#125;</span><br><span class="line">    <span class="comment">//从服务端接受报文</span></span><br><span class="line">    <span class="function"><span class="type">bool</span> <span class="title">rcev</span><span class="params">(string &amp;buffer,<span class="type">const</span> <span class="type">size_t</span> maxlen)</span></span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        buffer.<span class="built_in">clear</span>();         <span class="comment">//清空buffer，确保开始接收之前它是空的。</span></span><br><span class="line">        buffer.<span class="built_in">resize</span>(maxlen);</span><br><span class="line">        <span class="type">int</span> readn = ::<span class="built_in">recv</span>(m_clientfd,&amp;buffer[<span class="number">0</span>],buffer.<span class="built_in">size</span>(),<span class="number">0</span>);</span><br><span class="line">        <span class="keyword">if</span>(readn &lt;= <span class="number">0</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            buffer.<span class="built_in">clear</span>();</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        buffer.<span class="built_in">resize</span>(readn);</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    ~<span class="built_in">ctcpclient</span>()&#123;&#125;</span><br><span class="line">&#125;；</span><br></pre></td></tr></table></figure>
+
+<h2 id="封装socket服务端"><a href="#封装socket服务端" class="headerlink" title="封装socket服务端"></a>封装socket服务端</h2><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;cstdio&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;cstring&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;cstdlib&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;unistd.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;netdb.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/types.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/socket.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;arpa/inet.h&gt;</span></span></span><br><span class="line"><span class="keyword">using</span> <span class="keyword">namespace</span> std;</span><br><span class="line"><span class="keyword">class</span> <span class="title class_">ctcpserver</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">private</span>:</span><br><span class="line">    <span class="type">int</span> m_listenfd;			<span class="comment">//监听的socket</span></span><br><span class="line">    <span class="type">int</span> m_clientfd;			<span class="comment">//客户端连上来的</span></span><br><span class="line">    string m_clientip;		<span class="comment">//服务端ip</span></span><br><span class="line">    <span class="type">unsigned</span> <span class="type">short</span> m_port;	<span class="comment">//端口</span></span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    <span class="built_in">ctcpserver</span>():<span class="built_in">m_listenfd</span>(<span class="number">-1</span>),<span class="built_in">m_clientfd</span>(<span class="number">-1</span>)&#123;&#125;</span><br><span class="line">    <span class="function"><span class="type">bool</span> <span class="title">initserver</span><span class="params">(<span class="type">const</span> <span class="type">unsigned</span> <span class="type">short</span> in_port)</span></span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> ((m_listenfd = <span class="built_in">socket</span>(AF_INET,SOCK_STREAM,<span class="number">0</span>)) == <span class="number">-1</span>) <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">        m_port = in_port;</span><br><span class="line">        <span class="comment">//第二步，把服务端用于通信的IP和端口绑定到socket上</span></span><br><span class="line">        <span class="keyword">struct</span> <span class="title class_">sockaddr_in</span> servaddr;</span><br><span class="line">        <span class="built_in">memset</span>(&amp;servaddr,<span class="number">0</span>,<span class="built_in">sizeof</span>(servaddr));</span><br><span class="line">        servaddr.sin_family = AF_INET;</span><br><span class="line">        servaddr.sin_port = <span class="built_in">htons</span>(m_port);</span><br><span class="line">        servaddr.sin_addr.s_addr = <span class="built_in">htonl</span>(INADDR_ANY);</span><br><span class="line">        <span class="keyword">if</span>(<span class="built_in">bind</span>(m_listenfd,(<span class="keyword">struct</span> sockaddr *)&amp;servaddr,<span class="built_in">sizeof</span>(servaddr)) == <span class="number">-1</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="built_in">close</span>(m_listenfd);</span><br><span class="line">            m_listenfd = <span class="number">-1</span>;</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span>(<span class="built_in">listen</span>(m_listenfd,<span class="number">5</span>) == <span class="number">-1</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="built_in">close</span>(m_listenfd);</span><br><span class="line">            m_listenfd = <span class="number">-1</span>;</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> ture;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//受理客户端的连接</span></span><br><span class="line">    <span class="function"><span class="type">bool</span> <span class="title">accept</span><span class="params">()</span></span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        <span class="keyword">struct</span> <span class="title class_">sockaddr_in</span> caddr;</span><br><span class="line">        <span class="type">socklen_t</span> addrlen = <span class="built_in">sizeof</span>(caddr);</span><br><span class="line">        <span class="keyword">if</span>((m_clientfd =::<span class="built_in">accept</span>(m_listenfd,(<span class="keyword">struct</span> sockaddr *)&amp;caddr,&amp;addrlen)) == <span class="number">-1</span>)</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">        m_clientip = <span class="built_in">inet_ntoa</span>(caddr.sin_addr);</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="function"><span class="type">const</span> string &amp; <span class="title">clientip</span><span class="params">()</span> <span class="type">const</span></span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> m_clientip;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+
+        </div>
+
+        
+            <section class="post-copyright">
+                
+                    <p class="copyright-item">
+                        <span>Author:</span>
+                        <span>yuhanliu</span>
+                    </p>
+                
+                
+                
+                    <p class="copyright-item">
+                        <span>License:</span>
+                        <span>Copyright (c) 2019 <a target="_blank" rel="noopener" href="http://creativecommons.org/licenses/by-nc/4.0/">CC-BY-NC-4.0</a> LICENSE</span>
+                    </p>
+                
+                
+                     <p class="copyright-item">
+                         <span>Slogan:</span>
+                         <span>Do you believe in <strong>DESTINY</strong>?</span>
+                     </p>
+                
+
+            </section>
+        
+        <section class="post-tags">
+            <div>
+                <span>Tag(s):</span>
+                <span class="tag">
+                    
+                    
+                        <a href="/tags/c-%EF%BC%8C%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B/"># c++，网络编程</a>
+                    
+                        
+                </span>
+            </div>
+            <div>
+                <a href="javascript:window.history.back();">back</a>
+                <span>· </span>
+                <a href="/">home</a>
+            </div>
+        </section>
+        <section class="post-nav">
+            
+            
+            <a class="next" rel="next" href="/2023/09/20/%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B%EF%BC%9A%E4%BB%8Esocket%E5%88%B0epoll---(1)/">网络编程：从socket到epoll---(1)</a>
+            
+        </section>
+
+
+    </article>
+</div>
+
+            </div>
+            <footer id="footer" class="footer">
+    <div class="copyright">
+        <span>© yuhanliu | Powered by <a href="https://hexo.io" target="_blank">Hexo</a> & <a href="https://github.com/Siricee/hexo-theme-Chic" target="_blank">Chic</a></span>
+    </div>
+</footer>
+
+    </div>
+</body>
+
+</html>
